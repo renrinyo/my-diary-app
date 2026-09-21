@@ -36,7 +36,7 @@ export default function DiaryApp() {
   const [randomDiary, setRandomDiary] = useState<any | null>(null);
   const [isHighlightExpanded, setIsHighlightExpanded] = useState(false);
 
-  // 編集用ステート（追加画像用ステートを追加）
+  // 編集用ステート
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [editingImageFile, setEditingImageFile] = useState<File | null>(null);
@@ -152,13 +152,45 @@ export default function DiaryApp() {
     setEditingImageFile(null);
   };
 
-  // 編集保存（テキスト更新 ＋ 新規写真の追加保存）
+  // 写真の個別削除関数
+  const handleDeleteImage = async (imageId: number, imageUrl: string) => {
+    if (!window.confirm("この写真を削除しますか？")) return;
+
+    try {
+      // 1. データベースから画像レコードを削除
+      const { error: dbError } = await supabase
+        .from("diary_images")
+        .delete()
+        .eq("id", imageId);
+
+      if (dbError) throw dbError;
+
+      // 2. Storageからファイル実体を削除
+      try {
+        const pathPart = imageUrl.split("/diary-images/")[1];
+        if (pathPart) {
+          const filePath = decodeURIComponent(pathPart.split("?")[0]);
+          await supabase.storage.from("diary-images").remove([filePath]);
+        }
+      } catch (storageErr) {
+        console.warn("Storageファイル削除スキップ:", storageErr);
+      }
+
+      alert("写真を削除しました。");
+      fetchDiaries();
+      if (searchQuery) handleSearch();
+      if (randomDiary) fetchRandomHighlight();
+    } catch (err: any) {
+      alert("写真の削除に失敗しました: " + err.message);
+    }
+  };
+
+  // 編集保存
   const handleSaveEdit = async (id: number) => {
     if (!editingContent.trim()) return;
     setIsUpdating(true);
 
     try {
-      // 1. 本文の更新
       const { error: textError } = await supabase
         .from("diaries")
         .update({ content: editingContent })
@@ -166,7 +198,6 @@ export default function DiaryApp() {
 
       if (textError) throw textError;
 
-      // 2. 追加の写真がある場合はアップロードして登録
       if (editingImageFile) {
         const filePath = `${id}/${Date.now()}_${editingImageFile.name}`;
         const { error: uploadError } = await supabase.storage
@@ -407,7 +438,6 @@ export default function DiaryApp() {
               style={{ width: "100%", padding: "8px", boxSizing: "border-box", fontSize: "0.9rem", borderRadius: "6px", border: "1px solid #93c5fd", outline: "none", color: "#1e293b", background: "#f8fafc" }}
             />
             
-            {/* 編集時の写真追加欄 */}
             <div style={{ margin: "8px 0", background: "#f1f5f9", padding: "8px", borderRadius: "6px" }}>
               <label style={{ display: "block", fontSize: "0.78rem", color: "#475569", fontWeight: "bold", marginBottom: "4px" }}>
                 📷 写真・スクショを追加:
@@ -445,17 +475,46 @@ export default function DiaryApp() {
           </p>
         )}
 
-        {/* 既存の添付画像一覧 */}
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
-          {diary.diary_images?.map((img: any) => (
-            <img
-              key={img.id}
-              src={img.image_url}
-              alt="添付画像"
-              style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid #cbd5e1" }}
-            />
-          ))}
-        </div>
+        {/* 添付画像一覧（写真ごとに削除用の✕ボタンを表示） */}
+        {diary.diary_images && diary.diary_images.length > 0 && (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "10px" }}>
+            {diary.diary_images.map((img: any) => (
+              <div key={img.id} style={{ position: "relative", display: "inline-block" }}>
+                <img
+                  src={img.image_url}
+                  alt="添付画像"
+                  style={{ width: "84px", height: "84px", objectFit: "cover", borderRadius: "6px", border: "1px solid #cbd5e1", display: "block" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleDeleteImage(img.id, img.image_url)}
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    right: "-6px",
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "50%",
+                    background: "#ef4444",
+                    color: "#ffffff",
+                    border: "2px solid #ffffff",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    lineHeight: "1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                  }}
+                  title="この写真を削除"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
