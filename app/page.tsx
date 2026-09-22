@@ -32,6 +32,61 @@ export default function DiaryApp() {
   const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
   const [viewerImages, setViewerImages] = useState<string[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number>(0);
+  
+  // 画面の横スワイプで日付（selectedDate）を前日・翌日に切り替える
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("input") || target.closest("textarea") || target.closest("button")) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (viewerImageUrl) return;
+
+      const target = e.target as HTMLElement;
+      if (target.closest("input") || target.closest("textarea") || target.closest("button")) return;
+
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const diffX = endX - startX;
+      const diffY = endY - startY;
+
+      // 横スワイプ判定（横幅が40px以上かつ縦方向の移動より大きい）
+      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+        setSelectedDate((prev) => {
+          if (!prev) return prev;
+          const [year, month, day] = prev.split("-").map(Number);
+          const dateObj = new Date(year, month - 1, day);
+
+          if (diffX > 0) {
+            // 右スワイプ（画面を右へ払う）: 前日へ
+            dateObj.setDate(dateObj.getDate() - 1);
+          } else {
+            // 左スワイプ（画面を左へ払う）: 翌日へ
+            dateObj.setDate(dateObj.getDate() + 1);
+          }
+
+          const y = dateObj.getFullYear();
+          const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+          const d = String(dateObj.getDate()).padStart(2, "0");
+          return `${y}-${m}-${d}`;
+        });
+      }
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [viewerImageUrl]);
+
   const handleDownloadImage = async (url: string) => {
     try {
       const response = await fetch(url);
@@ -534,7 +589,24 @@ export default function DiaryApp() {
             </div>
           </div>
         ) : (
-          <p style={{ whiteSpace: "pre-wrap", margin: "4px 0 0 0", fontSize: "0.88rem", color: "#334155", lineHeight: "1.5" }}>
+              <p
+                onClick={() => handleStartEdit(diary)}
+                onTouchEnd={() => handleStartEdit(diary)}
+                role="button"
+                tabIndex={0}
+                style={{
+                  whiteSpace: "pre-wrap",
+                  margin: "4px 0 0",
+                  fontSize: "0.88rem",
+                  color: "#334155",
+                  lineHeight: "1.5",
+                  cursor: "pointer",
+                  WebkitTapHighlightColor: "rgba(0,0,0,0.1)",
+                  padding: "6px",
+                  borderRadius: "6px",
+                  backgroundColor: "rgba(0, 0, 0, 0.02)"
+                }}
+              >
             {diary.content}
           </p>
         )}
