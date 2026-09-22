@@ -877,45 +877,12 @@ export default function DiaryApp() {
         </details>
 
       
-      {/* 写真の拡大表示モーダル（ピンチズーム・パン移動対応） */}
+      {/* 写真の拡大表示モーダル（完全追従パン＆ズーム） */}
       {viewerImageUrl && (
         <div
-          onClick={() => setViewerImageUrl(null)}
-          onTouchStart={(e) => {
-            if (e.touches.length > 1) return;
-            (window as any).mStartX = e.touches[0].clientX;
-            (window as any).mStartY = e.touches[0].clientY;
-          }}
-          onTouchEnd={(e) => {
-            const sx = (window as any).mStartX;
-            const sy = (window as any).mStartY;
-            if (sx === undefined || sy === undefined) return;
-
-            const ex = e.changedTouches[0].clientX;
-            const ey = e.changedTouches[0].clientY;
-            const dx = ex - sx;
-            const dy = ey - sy;
-
-            // 1. 下スワイプで閉じる（下へ50px以上かつ縦方向の動きが横より大きい）
-            if (dy > 50 && dy > Math.abs(dx) * 1.2) {
-              if (e.cancelable) e.preventDefault();
-              e.stopPropagation();
-              setViewerImageUrl(null);
-              return;
-            }
-
-            // 2. 横スワイプで前後の写真切り替え（横へ40px以上かつ横方向の動きが縦より大きい）
-            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-              if (dx < -40 && viewerIndex < viewerImages.length - 1) {
-                const nextIdx = viewerIndex + 1;
-                setViewerIndex(nextIdx);
-                setViewerImageUrl(viewerImages[nextIdx]);
-              } else if (dx > 40 && viewerIndex > 0) {
-                const prevIdx = viewerIndex - 1;
-                setViewerIndex(prevIdx);
-                setViewerImageUrl(viewerImages[prevIdx]);
-              }
-            }
+          onClick={() => {
+            // 背景タップで閉じる
+            setViewerImageUrl(null);
           }}
           style={{
             position: "fixed",
@@ -928,145 +895,74 @@ export default function DiaryApp() {
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
-            padding: "16px",
-            boxSizing: "border-box",
             overflow: "hidden",
-            touchAction: "pan-y pinch-zoom"
+            touchAction: "none"
           }}
         >
-          {/* 保存ボタン */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (viewerImageUrl) handleDownloadImage(viewerImageUrl);
-            }}
-            style={{
-              position: "absolute",
-              top: "20px",
-              right: "70px",
-              background: "rgba(255, 255, 255, 0.25)",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "20px",
-              padding: "8px 14px",
-              fontSize: "14px",
-              fontWeight: "bold",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              zIndex: 10000
-            }}
-          >
-            ⬇ 保存
-          </button>
-
-          {/* 閉じる✕ボタン */}
-          <button
-            type="button"
-            onClick={() => setViewerImageUrl(null)}
+          {/* 上部操作バー */}
+          <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               position: "absolute",
               top: "20px",
               right: "20px",
-              background: "rgba(255, 255, 255, 0.25)",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "50%",
-              width: "38px",
-              height: "38px",
-              fontSize: "22px",
-              cursor: "pointer",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10000
+              gap: "12px",
+              zIndex: 10001
             }}
           >
-            ✕
-          </button>
-
-          {/* 前の写真へ (左矢印) */}
-          {viewerImages.length > 1 && viewerIndex > 0 && (
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const prevIdx = viewerIndex - 1;
-                setViewerIndex(prevIdx);
-                setViewerImageUrl(viewerImages[prevIdx]);
-              }}
+              onClick={() => handleDownloadImage(viewerImageUrl)}
               style={{
-                position: "absolute",
-                left: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "rgba(255, 255, 255, 0.3)",
+                background: "rgba(255, 255, 255, 0.2)",
                 color: "#fff",
                 border: "none",
                 borderRadius: "50%",
-                width: "44px",
-                height: "44px",
-                fontSize: "24px",
-                cursor: "pointer",
-                zIndex: 10000,
+                width: "40px",
+                height: "40px",
+                fontSize: "1.2rem",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                cursor: "pointer"
               }}
             >
-              ❮
+              📥
             </button>
-          )}
-
-          {/* 次の写真へ (右矢印) */}
-          {viewerImages.length > 1 && viewerIndex < viewerImages.length - 1 && (
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const nextIdx = viewerIndex + 1;
-                setViewerIndex(nextIdx);
-                setViewerImageUrl(viewerImages[nextIdx]);
-              }}
+              onClick={() => setViewerImageUrl(null)}
               style={{
-                position: "absolute",
-                right: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "rgba(255, 255, 255, 0.3)",
+                background: "rgba(255, 255, 255, 0.2)",
                 color: "#fff",
                 border: "none",
                 borderRadius: "50%",
-                width: "44px",
-                height: "44px",
-                fontSize: "24px",
-                cursor: "pointer",
-                zIndex: 10000,
+                width: "40px",
+                height: "40px",
+                fontSize: "1.2rem",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                cursor: "pointer"
               }}
             >
-              ❯
+              ✕
             </button>
-          )}
+          </div>
 
-          {/* 枚数カウント表示 */}
+          {/* 枚数インジケーター */}
           {viewerImages.length > 1 && (
             <div
               style={{
                 position: "absolute",
-                bottom: "24px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                background: "rgba(0, 0, 0, 0.6)",
-                color: "#ffffff",
-                padding: "4px 14px",
-                borderRadius: "14px",
-                fontSize: "14px",
-                zIndex: 10000
+                top: "28px",
+                left: "20px",
+                color: "#fff",
+                fontSize: "0.9rem",
+                fontWeight: "bold",
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                padding: "4px 10px",
+                borderRadius: "12px",
+                zIndex: 10001
               }}
             >
               {viewerIndex + 1} / {viewerImages.length}
@@ -1075,15 +971,103 @@ export default function DiaryApp() {
 
           {/* メイン拡大画像 */}
           <img
+            id="active-modal-img"
             src={viewerImageUrl}
             alt="拡大表示"
             onClick={(e) => e.stopPropagation()}
+            ref={(el) => {
+              if (!el) return;
+              (window as any)._panImgEl = el;
+              (window as any)._scale = 1;
+              (window as any)._posX = 0;
+              (window as any)._posY = 0;
+              el.style.transform = "translate3d(0px, 0px, 0px) scale(1)";
+            }}
+            onTouchStart={(e) => {
+              if (e.touches.length === 1) {
+                // 1本指ドラッグの基準点を記録
+                (window as any)._dragStartX = e.touches[0].clientX;
+                (window as any)._dragStartY = e.touches[0].clientY;
+                (window as any)._originX = (window as any)._posX || 0;
+                (window as any)._originY = (window as any)._posY || 0;
+              } else if (e.touches.length === 2) {
+                // 2本指ピンチの初期距離
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                (window as any)._startDistance = Math.hypot(dx, dy);
+                (window as any)._originScale = (window as any)._scale || 1;
+              }
+            }}
+            onTouchMove={(e) => {
+              if (e.cancelable) e.preventDefault();
+              const el = (window as any)._panImgEl;
+              if (!el) return;
+
+              if (e.touches.length === 2 && (window as any)._startDistance) {
+                // ピンチズーム処理
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.hypot(dx, dy);
+                const factor = dist / (window as any)._startDistance;
+                const newScale = Math.min(Math.max((window as any)._originScale * factor, 1), 4);
+                (window as any)._scale = newScale;
+                
+                // 等倍に戻したら位置も原点へ
+                if (newScale <= 1.05) {
+                  (window as any)._posX = 0;
+                  (window as any)._posY = 0;
+                }
+                el.style.transform = `translate3d(${(window as any)._posX}px, ${(window as any)._posY}px, 0px) scale(${newScale})`;
+              } else if (e.touches.length === 1) {
+                const currentScale = (window as any)._scale || 1;
+                // 拡大時：指の移動量に応じてダイレクトに上下左右へ移動
+                if (currentScale > 1.05) {
+                  const moveX = e.touches[0].clientX - (window as any)._dragStartX;
+                  const moveY = e.touches[0].clientY - (window as any)._dragStartY;
+                  const targetX = (window as any)._originX + moveX;
+                  const targetY = (window as any)._originY + moveY;
+                  (window as any)._posX = targetX;
+                  (window as any)._posY = targetY;
+                  el.style.transform = `translate3d(${targetX}px, ${targetY}px, 0px) scale(${currentScale})`;
+                }
+              }
+            }}
+            onTouchEnd={(e) => {
+              const currentScale = (window as any)._scale || 1;
+              // 等倍時のみスワイプ判定（下スワイプで閉じる、左右で写真送り）
+              if (currentScale <= 1.05 && (window as any)._dragStartX !== undefined && e.changedTouches.length > 0) {
+                const dx = e.changedTouches[0].clientX - (window as any)._dragStartX;
+                const dy = e.changedTouches[0].clientY - (window as any)._dragStartY;
+
+                // 下スワイプで閉じる
+                if (dy > 60 && dy > Math.abs(dx) * 1.3) {
+                  setViewerImageUrl(null);
+                  return;
+                }
+
+                // 左右スワイプで前後の写真切り替え
+                if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+                  if (dx < -50 && viewerIndex < viewerImages.length - 1) {
+                    const nextIdx = viewerIndex + 1;
+                    setViewerIndex(nextIdx);
+                    setViewerImageUrl(viewerImages[nextIdx]);
+                  } else if (dx > 50 && viewerIndex > 0) {
+                    const prevIdx = viewerIndex - 1;
+                    setViewerIndex(prevIdx);
+                    setViewerImageUrl(viewerImages[prevIdx]);
+                  }
+                }
+              }
+            }}
             style={{
-              maxWidth: "100%",
+              maxWidth: "92%",
               maxHeight: "85%",
               objectFit: "contain",
               borderRadius: "8px",
-              userSelect: "none"
+              userSelect: "none",
+              touchAction: "none",
+              transformOrigin: "center center",
+              willChange: "transform"
             }}
           />
         </div>
