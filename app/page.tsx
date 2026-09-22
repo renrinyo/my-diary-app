@@ -87,6 +87,30 @@ export default function DiaryApp() {
     };
   }, [viewerImageUrl]);
 
+  
+  // 写真拡大モーダル表示中の背景スクロールを固定し、下スワイプ連動スクロールを防止
+  useEffect(() => {
+    if (viewerImageUrl) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+      const originalTop = document.body.style.top;
+      const scrollY = window.scrollY;
+
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = "";
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [viewerImageUrl]);
+
   const handleDownloadImage = async (url: string) => {
     try {
       const response = await fetch(url);
@@ -854,17 +878,35 @@ export default function DiaryApp() {
         <div
           onClick={() => setViewerImageUrl(null)}
           onTouchStart={(e) => {
-            (window as any).touchStartX = e.touches[0].clientX;
+            if (e.touches.length > 1) return;
+            (window as any).mStartX = e.touches[0].clientX;
+            (window as any).mStartY = e.touches[0].clientY;
           }}
           onTouchEnd={(e) => {
-            const startX = (window as any).touchStartX;
-            const endX = e.changedTouches[0].clientX;
-            if (startX && Math.abs(startX - endX) > 40) {
-              if (startX > endX + 40 && viewerIndex < viewerImages.length - 1) {
+            const sx = (window as any).mStartX;
+            const sy = (window as any).mStartY;
+            if (sx === undefined || sy === undefined) return;
+
+            const ex = e.changedTouches[0].clientX;
+            const ey = e.changedTouches[0].clientY;
+            const dx = ex - sx;
+            const dy = ey - sy;
+
+            // 1. 下スワイプで閉じる（下へ50px以上かつ縦方向の動きが横より大きい）
+            if (dy > 50 && dy > Math.abs(dx) * 1.2) {
+              if (e.cancelable) e.preventDefault();
+              e.stopPropagation();
+              setViewerImageUrl(null);
+              return;
+            }
+
+            // 2. 横スワイプで前後の写真切り替え（横へ40px以上かつ横方向の動きが縦より大きい）
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+              if (dx < -40 && viewerIndex < viewerImages.length - 1) {
                 const nextIdx = viewerIndex + 1;
                 setViewerIndex(nextIdx);
                 setViewerImageUrl(viewerImages[nextIdx]);
-              } else if (startX < endX - 40 && viewerIndex > 0) {
+              } else if (dx > 40 && viewerIndex > 0) {
                 const prevIdx = viewerIndex - 1;
                 setViewerIndex(prevIdx);
                 setViewerImageUrl(viewerImages[prevIdx]);
