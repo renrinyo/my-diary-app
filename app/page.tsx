@@ -432,11 +432,40 @@ export default function DiaryApp() {
         {isEditing ? (
           <div style={{ marginTop: "8px" }}>
             <textarea
-              rows={4}
-              value={editingContent}
-              onChange={(e) => setEditingContent(e.target.value)}
-              style={{ width: "100%", padding: "8px", boxSizing: "border-box", fontSize: "0.9rem", borderRadius: "6px", border: "1px solid #93c5fd", outline: "none", color: "#1e293b", background: "#f8fafc" }}
-            />
+  ref={(el) => {
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+  }}
+  value={editingContent}
+  onChange={(e) => {
+    setEditingContent(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = e.target.scrollHeight + "px";
+  }}
+  autoFocus
+  onFocus={(e) => {
+    const val = e.target.value;
+    e.target.value = "";
+    e.target.value = val;
+    e.target.style.height = "auto";
+    e.target.style.height = e.target.scrollHeight + "px";
+  }}
+  style={{
+    width: "100%",
+    minHeight: "240px",
+    height: "auto",
+    overflow: "hidden",
+    resize: "none",
+    fontSize: "1rem",
+    lineHeight: "1.6",
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid #cbd5e1",
+    boxSizing: "border-box"
+  }}
+/>
             
             <div style={{ margin: "8px 0", background: "#f1f5f9", padding: "8px", borderRadius: "6px" }}>
               <label style={{ display: "block", fontSize: "0.78rem", color: "#475569", fontWeight: "bold", marginBottom: "4px" }}>
