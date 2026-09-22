@@ -30,6 +30,8 @@ export default function DiaryApp() {
   const [exportStatus, setExportStatus] = useState("");
 
   const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number>(0);
   const handleDownloadImage = async (url: string) => {
     try {
       const response = await fetch(url);
@@ -540,12 +542,12 @@ export default function DiaryApp() {
         {/* 添付画像一覧（写真ごとに削除用の✕ボタンを表示） */}
         {diary.diary_images && diary.diary_images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginTop: "12px", width: "100%" }}>
-            {diary.diary_images.map((img: any) => (
+            {diary.diary_images.map((img: any, imgIdx: number) => (
               <div key={img.id} style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
                 <img
     src={img.image_url}
     alt="添付画像"
-    onClick={() => setViewerImageUrl(img.image_url)}
+    onClick={() => { const urls = diary.diary_images.map((i: any) => i.image_url); setViewerImages(urls); setViewerIndex(imgIdx); setViewerImageUrl(img.image_url); }}
     style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" , cursor: "pointer"}}
   />
                 <button
@@ -779,6 +781,24 @@ export default function DiaryApp() {
       {viewerImageUrl && (
         <div
           onClick={() => setViewerImageUrl(null)}
+          onTouchStart={(e) => {
+            (window as any).touchStartX = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            const startX = (window as any).touchStartX;
+            const endX = e.changedTouches[0].clientX;
+            if (startX && Math.abs(startX - endX) > 40) {
+              if (startX > endX + 40 && viewerIndex < viewerImages.length - 1) {
+                const nextIdx = viewerIndex + 1;
+                setViewerIndex(nextIdx);
+                setViewerImageUrl(viewerImages[nextIdx]);
+              } else if (startX < endX - 40 && viewerIndex > 0) {
+                const prevIdx = viewerIndex - 1;
+                setViewerIndex(prevIdx);
+                setViewerImageUrl(viewerImages[prevIdx]);
+              }
+            }
+          }}
           style={{
             position: "fixed",
             top: 0,
@@ -792,13 +812,11 @@ export default function DiaryApp() {
             zIndex: 9999,
             padding: "16px",
             boxSizing: "border-box",
-            overflow: "auto",
-            WebkitOverflowScrolling: "touch",
-            touchAction: "pan-x pan-y pinch-zoom"
+            overflow: "hidden",
+            touchAction: "pan-y pinch-zoom"
           }}
         >
-          
-          {/* ダウンロード保存ボタン */}
+          {/* 保存ボタン */}
           <button
             type="button"
             onClick={(e) => {
@@ -825,6 +843,8 @@ export default function DiaryApp() {
           >
             ⬇ 保存
           </button>
+
+          {/* 閉じる✕ボタン */}
           <button
             type="button"
             onClick={() => setViewerImageUrl(null)}
@@ -848,17 +868,105 @@ export default function DiaryApp() {
           >
             ✕
           </button>
+
+          {/* 前の写真へ (左矢印) */}
+          {viewerImages.length > 1 && viewerIndex > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const prevIdx = viewerIndex - 1;
+                setViewerIndex(prevIdx);
+                setViewerImageUrl(viewerImages[prevIdx]);
+              }}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "rgba(255, 255, 255, 0.3)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "50%",
+                width: "44px",
+                height: "44px",
+                fontSize: "24px",
+                cursor: "pointer",
+                zIndex: 10000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ❮
+            </button>
+          )}
+
+          {/* 次の写真へ (右矢印) */}
+          {viewerImages.length > 1 && viewerIndex < viewerImages.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextIdx = viewerIndex + 1;
+                setViewerIndex(nextIdx);
+                setViewerImageUrl(viewerImages[nextIdx]);
+              }}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "rgba(255, 255, 255, 0.3)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "50%",
+                width: "44px",
+                height: "44px",
+                fontSize: "24px",
+                cursor: "pointer",
+                zIndex: 10000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ❯
+            </button>
+          )}
+
+          {/* 枚数カウント表示 */}
+          {viewerImages.length > 1 && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "24px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "rgba(0, 0, 0, 0.6)",
+                color: "#ffffff",
+                padding: "4px 14px",
+                borderRadius: "14px",
+                fontSize: "14px",
+                zIndex: 10000
+              }}
+            >
+              {viewerIndex + 1} / {viewerImages.length}
+            </div>
+          )}
+
+          {/* メイン拡大画像 */}
           <img
             src={viewerImageUrl}
             alt="拡大表示"
             onClick={(e) => e.stopPropagation()}
             style={{
               maxWidth: "100%",
-              maxHeight: "90%",
+              maxHeight: "85%",
               objectFit: "contain",
               borderRadius: "8px",
-              touchAction: "pan-x pan-y pinch-zoom"
-  }}
+              userSelect: "none"
+            }}
           />
         </div>
       )}
