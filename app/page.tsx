@@ -477,13 +477,13 @@ export default function DiaryApp() {
 
         {/* 添付画像一覧（写真ごとに削除用の✕ボタンを表示） */}
         {diary.diary_images && diary.diary_images.length > 0 && (
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginTop: "12px", width: "100%" }}>
             {diary.diary_images.map((img: any) => (
-              <div key={img.id} style={{ position: "relative", display: "inline-block" }}>
+              <div key={img.id} style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
                 <img
                   src={img.image_url}
                   alt="添付画像"
-                  style={{ width: "84px", height: "84px", objectFit: "cover", borderRadius: "6px", border: "1px solid #cbd5e1", display: "block" }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                 />
                 <button
                   type="button"
