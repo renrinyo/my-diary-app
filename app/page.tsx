@@ -29,6 +29,39 @@ export default function DiaryApp() {
   const [importStatus, setImportStatus] = useState("");
   const [exportStatus, setExportStatus] = useState("");
 
+  const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
+  const handleDownloadImage = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const filename = "diary-photo-" + Date.now() + ".jpg";
+      const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
+
+      // iPhoneなどのスマホ向け: 共有シートを呼び出して「画像を保存」を直接選ばせる
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "日記の写真",
+        });
+        return;
+      }
+
+      // PC向け: 通常の自動ダウンロード
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        window.open(url, "_blank");
+      }
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -510,10 +543,11 @@ export default function DiaryApp() {
             {diary.diary_images.map((img: any) => (
               <div key={img.id} style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
                 <img
-                  src={img.image_url}
-                  alt="添付画像"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-                />
+    src={img.image_url}
+    alt="添付画像"
+    onClick={() => setViewerImageUrl(img.image_url)}
+    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" , cursor: "pointer"}}
+  />
                 <button
                   type="button"
                   onClick={() => handleDeleteImage(img.id, img.image_url)}
@@ -740,7 +774,95 @@ export default function DiaryApp() {
           </div>
         </details>
 
-      </div>
+      
+      {/* 写真の拡大表示モーダル（ピンチズーム・パン移動対応） */}
+      {viewerImageUrl && (
+        <div
+          onClick={() => setViewerImageUrl(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.95)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px",
+            boxSizing: "border-box",
+            overflow: "auto",
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x pan-y pinch-zoom"
+          }}
+        >
+          
+          {/* ダウンロード保存ボタン */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (viewerImageUrl) handleDownloadImage(viewerImageUrl);
+            }}
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "70px",
+              background: "rgba(255, 255, 255, 0.25)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "20px",
+              padding: "8px 14px",
+              fontSize: "14px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              zIndex: 10000
+            }}
+          >
+            ⬇ 保存
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewerImageUrl(null)}
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              background: "rgba(255, 255, 255, 0.25)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "50%",
+              width: "38px",
+              height: "38px",
+              fontSize: "22px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000
+            }}
+          >
+            ✕
+          </button>
+          <img
+            src={viewerImageUrl}
+            alt="拡大表示"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "100%",
+              maxHeight: "90%",
+              objectFit: "contain",
+              borderRadius: "8px",
+              touchAction: "pan-x pan-y pinch-zoom"
+  }}
+          />
+        </div>
+      )}
+</div>
     </main>
   );
 }
